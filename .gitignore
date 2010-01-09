@@ -1,0 +1,6 @@
+tmp/**
+tmp.c*
+z
+*.z
+.*~
+a.out
