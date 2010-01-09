@@ -24,13 +24,13 @@ struct klijent {
 std::vector<klijent *> klijenti;
 
 int main(int argc, char* argv[]){
-    
+
     int port    = 8014;
     int quiet = 0;
-    
+
     // char root = "/var/www/wc14_html";
     char root[] = "./html";
-    
+
     int pokp=0;
     for(int i=1; i<argc; i++){
         std::string ar = argv[i];
@@ -47,8 +47,8 @@ int main(int argc, char* argv[]){
             printf(">> port: %d\n", port);
         }
     }
-    
-    
+
+
     int fail;
 
     int s = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
@@ -96,7 +96,6 @@ int main(int argc, char* argv[]){
                         buff[total] = 0;
                         if (strstr(buff, "\r\n\r\n")){
                             char *a = strstr(buff, "\r\n");
-
                             if (a){
                                 *a = 0;
                                 printf("buff: %s\n", buff);
@@ -110,24 +109,9 @@ int main(int argc, char* argv[]){
                                         char outbuff[8192];
                                         if (!strcmp(a, "/"))
                                             a = "/index.html";
-                                        if(a=="/test")
-                                            int arst = 1;
 
-
-                                        std::stringstream ss;
-                                        // std::string uri;
-
-                                        // ss << *a;
-                                        // ss >> uri;
-
-
-                                        printf("a: %s; *a: %s; b: %s \n", a, &a, b);
-                                        if(a == "/test") printf("a radi!!\n");
-
-                                        if(a != "/test") sprintf(outbuff, "%s%s", root, a);
-                                        else sprintf(outbuff, "/dev/null");
+                                        sprintf(outbuff, "%s%s", root, a);
                                         FILE *stream = fopen(outbuff, "rb");
-                                        if(a!="/test")
                                         if (stream){
                                             int velicina;
 
@@ -147,24 +131,14 @@ int main(int argc, char* argv[]){
                                             fclose(stream);
                                         }
                                         else {
-                                            if(a=="/test"){
-                                                printf("URI radi !! \n");
-                                                for(int i=0; i<1024*100; ++i){
-                                                    char qqq[] = "x";
-                                                    send(k->client_socket, qqq, strlen(qqq), 0);
-                                                }
-
-                                            } else {
-                                                sprintf(outbuff, "HTTP/1.1 404 Not found\r\nServer: Neki moj\r\nContent-Length: 4\r\nNEMA");
-                                                send(k->client_socket, outbuff, strlen(outbuff), 0);
-                                            }
+                                            sprintf(outbuff, "HTTP/1.1 404 Not found\r\nServer: Neki moj\r\nContent-Length: 4\r\nNEMA");
+                                            send(k->client_socket, outbuff, strlen(outbuff), 0);
                                         }
                                         close(k->client_socket);
                                         klijenti.erase(klijenti.begin() + i);
                                     }
                                 }
                             }
-
                         }
                     }
                     else {
