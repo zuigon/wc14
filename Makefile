@@ -15,4 +15,5 @@ compile:
 	$(CC) -Wall wc14.cpp -o wc14.o
 
 clean:
-	rm -f a.out z *.z *.o
+	rm -f z *.z *.o *.out
+	rm -r *.z.dSYM
