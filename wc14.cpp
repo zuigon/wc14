@@ -7,114 +7,182 @@
 #include <sys/select.h>
 #include <vector>
 
+#include <string>
+#include <sstream>
+
+
+int GetIntVal(std::string strConvert) {
+    int intReturn;
+    intReturn = atoi(strConvert.c_str());
+    return(intReturn);
+}
+
 struct klijent {
-  int client_socket;
+    int client_socket;
 };
 
 std::vector<klijent *> klijenti;
 
-int main(void){
-  int fail;
-
-  int s = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-
-  struct sockaddr_in sin = {0};
-  sin.sin_family = AF_INET;
-  sin.sin_port = htons(8011);
-  sin.sin_addr.s_addr = INADDR_ANY;
-  fail = bind(s, (struct sockaddr *) &sin, sizeof(sin));
-  if (fail){
-    printf("Ne mogu koristiti port ..\n");
-    return -1;
-  }
-  fail = listen(s, 10);
-  if (fail){
-    printf("Ne mogu slusati na portu ..\n");
-    return -1;
-  }
-
-
-  fd_set sockets;
-  unsigned int i;
-  int max;
-
-  while (1){
-    FD_ZERO(&sockets);     FD_SET(s, &sockets);
-    max = s;
-    for (i=0;i<klijenti.size();i++){
-      struct klijent *k = klijenti[i];        FD_SET(k->client_socket, &sockets);
-      if (max < k->client_socket)
-        max = k->client_socket;
+int main(int argc, char* argv[]){
+    
+    int port    = 8014;
+    int quiet = 0;
+    
+    // char root = "/var/www/wc14_html";
+    char root[] = "./html";
+    
+    int pokp=0;
+    for(int i=1; i<argc; i++){
+        std::string ar = argv[i];
+        if(ar == "-q"){
+            quiet=1;
+            printf(">> -q\n");
+        } else
+        if(ar == "-p" && argv[i+1]){
+            printf(">> -p\n");
+            pokp = 1;
+        } else
+        if(pokp==1){
+            port = GetIntVal(ar);
+            printf(">> port: %d\n", port);
+        }
     }
-    if (select(max+1, &sockets, NULL, NULL, NULL)>0){
-      for (i=0;i<klijenti.size();i++){
-        struct klijent *k = klijenti[i];
-        if (FD_ISSET(k->client_socket, &sockets)){
-          char buff[8192];
-          int total;
-          total = recv(k->client_socket, buff, sizeof(buff), 0);
-          if (total>0){
-            buff[total] = 0;
-            if (strstr(buff, "\r\n\r\n")){
-              char *a = strstr(buff, "\r\n");
-              if (a){
-                *a = 0;
-                a = strchr(buff, ' ');
-                if (a){
-                  a++;
-                  char *b = strchr(a, ' ');
-                  if (b)
-                  if (b){
-                    *b = 0;
-                    printf("Zatrazen je %s\r\n", a);
-                    char outbuff[8192];
-                    if (!strcmp(a, "/"))
-                      a = "/index.html";
-                    sprintf(outbuff, "/var/www/wc14_html%s", a);
-                    FILE *stream = fopen(outbuff, "rb");
-                    if (stream){
-                      fseek(stream, 0 , SEEK_END);
-                      int velicina = ftell(stream);
-                      fseek(stream, 0, SEEK_SET);
+    
+    
+    int fail;
 
-                      sprintf(outbuff, "HTTP/1.1 200 OK\r\nServer: Neki moj\r\nContent-Length: %d\r\n\r\n", velicina);
-                      send(k->client_socket, outbuff, strlen(outbuff), 0);
-                      while (!feof(stream)){
-                        int i = fread(outbuff, 1, sizeof(outbuff), stream);
-                        if (i>0){
-                          send(k->client_socket, outbuff, i, 0);
+    int s = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+
+    struct sockaddr_in sin = {0};
+    sin.sin_family = AF_INET;
+    sin.sin_port = htons(port);
+    sin.sin_addr.s_addr = INADDR_ANY;
+    fail = bind(s, (struct sockaddr *) &sin, sizeof(sin));
+    if (fail){
+        printf("Ne mogu koristiti port %d\n", port);
+        return -1;
+    }
+    fail = listen(s, 10);
+    if (fail){
+        printf("Ne mogu slusati na portu %d\n", port);
+        return -1;
+    }
+
+    printf("Pokrenut na 0.0.0.0:%d\n", port); fflush(stdout);
+
+
+    fd_set sockets;
+    unsigned int i;
+    int max;
+
+    while (1){
+        FD_ZERO(&sockets);
+        FD_SET(s, &sockets);
+        max = s;
+        for (i=0;i<klijenti.size();i++){
+            struct klijent *k = klijenti[i];
+            FD_SET(k->client_socket, &sockets);
+            if (max < k->client_socket)
+                max = k->client_socket;
+        }
+        if (select(max+1, &sockets, NULL, NULL, NULL)>0){
+            for (i=0;i<klijenti.size();i++){
+                struct klijent *k = klijenti[i];
+                if (FD_ISSET(k->client_socket, &sockets)){
+                    char buff[8192];
+                    int total;
+                    total = recv(k->client_socket, buff, sizeof(buff), 0);
+                    if (total>0){
+                        buff[total] = 0;
+                        if (strstr(buff, "\r\n\r\n")){
+                            char *a = strstr(buff, "\r\n");
+
+                            if (a){
+                                *a = 0;
+                                printf("buff: %s\n", buff);
+                                a = strchr(buff, ' ');
+                                if (a){
+                                    a++;
+                                    char *b = strchr(a, ' ');
+                                    if (b){
+                                        *b = 0;
+                                        if(quiet==0) printf("Zatrazen je %s\r\n", a);
+                                        char outbuff[8192];
+                                        if (!strcmp(a, "/"))
+                                            a = "/index.html";
+                                        if(a=="/test")
+                                            int arst = 1;
+
+
+                                        std::stringstream ss;
+                                        // std::string uri;
+
+                                        // ss << *a;
+                                        // ss >> uri;
+
+
+                                        printf("a: %s; *a: %s; b: %s \n", a, &a, b);
+                                        if(a == "/test") printf("a radi!!\n");
+
+                                        if(a != "/test") sprintf(outbuff, "%s%s", root, a);
+                                        else sprintf(outbuff, "/dev/null");
+                                        FILE *stream = fopen(outbuff, "rb");
+                                        if(a!="/test")
+                                        if (stream){
+                                            int velicina;
+
+                                            fseek(stream, 0, SEEK_END);
+                                            velicina = ftell(stream);
+                                            fseek(stream, 0, SEEK_SET);
+
+                                            sprintf(outbuff, "HTTP/1.1 200 OK\r\nServer: Neki moj\r\nContent-Length: %d\r\n\r\n", velicina);
+                                            send(k->client_socket, outbuff, strlen(outbuff), 0);
+                                            while (!feof(stream)){
+                                                int i = fread(outbuff, 1, sizeof(outbuff), stream);
+                                                if (i>0)
+                                                    send(k->client_socket, outbuff, i, 0);
+                                            }
+                                            if(quiet==0)
+                                                printf("gotov s citanjem\n");
+                                            fclose(stream);
+                                        }
+                                        else {
+                                            if(a=="/test"){
+                                                printf("URI radi !! \n");
+                                                for(int i=0; i<1024*100; ++i){
+                                                    char qqq[] = "x";
+                                                    send(k->client_socket, qqq, strlen(qqq), 0);
+                                                }
+
+                                            } else {
+                                                sprintf(outbuff, "HTTP/1.1 404 Not found\r\nServer: Neki moj\r\nContent-Length: 4\r\nNEMA");
+                                                send(k->client_socket, outbuff, strlen(outbuff), 0);
+                                            }
+                                        }
+                                        close(k->client_socket);
+                                        klijenti.erase(klijenti.begin() + i);
+                                    }
+                                }
+                            }
+
                         }
-                      }
-                      printf("gotov s citanjem");
-                      fclose(stream);
                     }
                     else {
-                      sprintf(outbuff, "HTTP/1.1 404 Not found\r\nServer: Neki moj\r\nContent-Length: 4\r\nNEMA");
-                      send(k->client_socket, outbuff, strlen(outbuff), 0);
+                        klijenti.erase(klijenti.begin() + i); i--;
                     }
-                    close(k->client_socket);
-                    klijenti.erase(klijenti.begin() + i);
-                  }
                 }
-              }
             }
-          }
-          else {
-            klijenti.erase(klijenti.begin() + i); i--;
-          }
+            if (FD_ISSET(s, &sockets)){
+                struct sockaddr_in client = {0};
+                unsigned int client_len = sizeof(client);
+                int novi_s = accept(s, (struct sockaddr *)&client, &client_len);
+                klijent *novi_klijent = new klijent();
+                novi_klijent->client_socket = novi_s;
+                klijenti.push_back(novi_klijent);
+            }
         }
-      }
-      if (FD_ISSET(s, &sockets)){
-        struct sockaddr_in client = {0};
-        unsigned int client_len = sizeof(client);
-        int novi_s = accept(s, (struct sockaddr *)&client, &client_len);
-        klijent *novi_klijent = new klijent();
-        novi_klijent->client_socket = novi_s;
-        klijenti.push_back(novi_klijent);
-      }
     }
-  }
 
-  return 0;
+    return 0;
 }
 
