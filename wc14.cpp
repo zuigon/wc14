@@ -10,6 +10,8 @@
 #include <string>
 #include <iostream>
 
+#include <assert.h>
+
 // INI vars load
 #include "lib/simpleini/SimpleIni.h"
 
@@ -106,6 +108,8 @@ int main(int argc, char* argv[]){
     printf("Root dir: %s\n", root);
     printf("Pokrenut na 0.0.0.0:%d\n", port); fflush(stdout);
 
+    assert(root);
+    assert(port>10 && port<65530);
 
     fd_set sockets;
     unsigned int i;
