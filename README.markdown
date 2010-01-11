@@ -4,6 +4,9 @@
 
 ## Installation
 
-    make
-    ./wc14
+    $ make
+    $ ./wc14
+
+## Usage
+
 
