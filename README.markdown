@@ -9,4 +9,4 @@
 
 ## Usage
 
-
+    ./wc14 [-p port]
