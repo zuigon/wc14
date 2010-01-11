@@ -1,6 +1,6 @@
 ## Installation
-1. Download [simpleini](http://code.jellycan.com/simpleini/) to lib/ and:
-2. Compile & run:
+* Download [simpleini](http://code.jellycan.com/simpleini/) to lib/ and:
+* Compile & run:
 
 	make
 	./wc14
