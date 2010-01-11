@@ -8,41 +8,76 @@
 #include <vector>
 
 #include <string>
-#include <sstream>
+#include <iostream>
+
+// INI vars load
+#include "lib/simpleini/SimpleIni.h"
+
+#ifndef CONFIG_FILE
+#define CONFIG_FILE "config.ini"
+#endif
+
+#ifndef DEF_PORT
+#define DEF_PORT 8014
+#endif
+
+#ifndef DEF_INDEX_FILE
+#define DEF_INDEX_FILE "/index.html"
+#endif
+
+using namespace std;
 
 
-int GetIntVal(std::string strConvert) {
-    int intReturn;
-    intReturn = atoi(strConvert.c_str());
-    return(intReturn);
-}
+int GetIntVal(std::string strConvert){ int intReturn = atoi(strConvert.c_str()); return(intReturn); }
 
-struct klijent {
-    int client_socket;
-};
-
+struct klijent { int client_socket; };
 std::vector<klijent *> klijenti;
 
 int main(int argc, char* argv[]){
 
-    int port    = 8014;
-    int quiet = 0;
+    int  def_port = DEF_PORT;
+    char def_name[] = "WC14";
+    int  quiet = 0;
 
-    // char root = "/var/www/wc14_html";
-    char root[] = "./html";
+    CSimpleIniA ini; ini.SetUnicode(); ini.LoadFile(CONFIG_FILE);
+
+    const char *vport = ini.GetValue("server", "port");
+    int port = (atoi(vport)!=0)?atoi(vport):def_port;
+
+    const char *vroot = ini.GetValue("server", "root", "./html");
+    char root[256]; memcpy(root,vroot,strlen(vroot)+1);
+    if(strlen(root) == 0)
+        memcpy (root,"./html",6);
+
+    const char *vname = ini.GetValue("server", "name", def_name);
+    char srvname[256]; memcpy(srvname,vname,strlen(vname)+1);
+    if(strlen(srvname) == 0)
+        memcpy (srvname,def_name,strlen(def_name));
+
+
+    if(strcmp(&root[strlen(root)-1], "/" ) == 0){
+        root[(strlen(root)-1)] = '\0';
+    } else {
+        cout << "U conf datoteci root dir mora zavrsavati sa '/' !"<<endl;
+        return -1;
+    }
+
+    // printf("INI Port: %d\n", port);
+    // printf("INI Root: %s\n", root);
+    // printf("INI Name: %s\n", srvname);
+    // printf("INI Name LEN: %i\n", (int)strlen(srvname));
+
 
     int pokp=0;
     for(int i=1; i<argc; i++){
         std::string ar = argv[i];
         if(ar == "-q"){
-            quiet=1;
+            quiet = 1;
             printf(">> -q\n");
-        } else
-        if(ar == "-p" && argv[i+1]){
+        } else if(ar == "-p" && argv[i+1]){
             printf(">> -p\n");
             pokp = 1;
-        } else
-        if(pokp==1){
+        } else if(pokp==1){
             port = GetIntVal(ar);
             printf(">> port: %d\n", port);
         }
@@ -68,6 +103,7 @@ int main(int argc, char* argv[]){
         return -1;
     }
 
+    printf("Root dir: %s\n", root);
     printf("Pokrenut na 0.0.0.0:%d\n", port); fflush(stdout);
 
 
@@ -98,7 +134,6 @@ int main(int argc, char* argv[]){
                             char *a = strstr(buff, "\r\n");
                             if (a){
                                 *a = 0;
-                                printf("buff: %s\n", buff);
                                 a = strchr(buff, ' ');
                                 if (a){
                                     a++;
@@ -108,7 +143,7 @@ int main(int argc, char* argv[]){
                                         if(quiet==0) printf("Zatrazen je %s\r\n", a);
                                         char outbuff[8192];
                                         if (!strcmp(a, "/"))
-                                            a = "/index.html";
+                                            a = DEF_INDEX_FILE;
 
                                         sprintf(outbuff, "%s%s", root, a);
                                         FILE *stream = fopen(outbuff, "rb");
@@ -119,7 +154,7 @@ int main(int argc, char* argv[]){
                                             velicina = ftell(stream);
                                             fseek(stream, 0, SEEK_SET);
 
-                                            sprintf(outbuff, "HTTP/1.1 200 OK\r\nServer: Neki moj\r\nContent-Length: %d\r\n\r\n", velicina);
+                                            sprintf(outbuff, "HTTP/1.1 200 OK\r\nServer: %s\r\nContent-Length: %d\r\n\r\n", srvname, velicina);
                                             send(k->client_socket, outbuff, strlen(outbuff), 0);
                                             while (!feof(stream)){
                                                 int i = fread(outbuff, 1, sizeof(outbuff), stream);
@@ -131,7 +166,7 @@ int main(int argc, char* argv[]){
                                             fclose(stream);
                                         }
                                         else {
-                                            sprintf(outbuff, "HTTP/1.1 404 Not found\r\nServer: Neki moj\r\nContent-Length: 4\r\nNEMA");
+                                            sprintf(outbuff, "HTTP/1.1 404 Not found\r\nServer: %s\r\nContent-Length: 4\r\nNEMA", srvname);
                                             send(k->client_socket, outbuff, strlen(outbuff), 0);
                                         }
                                         close(k->client_socket);
@@ -140,8 +175,7 @@ int main(int argc, char* argv[]){
                                 }
                             }
                         }
-                    }
-                    else {
+                    } else {
                         klijenti.erase(klijenti.begin() + i); i--;
                     }
                 }
@@ -159,4 +193,3 @@ int main(int argc, char* argv[]){
 
     return 0;
 }
-
