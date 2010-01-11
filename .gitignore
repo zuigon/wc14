@@ -6,3 +6,4 @@ z
 *.o
 *.out
 *.z.dSYM
+lib/simpleini
